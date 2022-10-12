@@ -1,0 +1,10 @@
+name: 'Compile SELinux policy module in container'
+description: 'Compile SELinux policy module on CentOS'
+
+runs:
+  using: 'docker'
+  image: Dockerfile
+
+branding:
+  icon: 'tag'
+  color: 'gray-dark'
