@@ -1,10 +1,57 @@
 name: 'Compile SELinux policy module in container'
-description: 'Compile SELinux policy module on CentOS'
-
-runs:
-  using: 'docker'
-  image: Dockerfile
+description: 'Compile SELinux policy module'
 
 branding:
-  icon: 'tag'
-  color: 'gray-dark'
+  icon: 'thermometer'
+  color: 'blue'
+
+inputs:
+  distro:
+    description: 'Name of the GNU/Linux distribution.'
+    required: true
+    default: 'almalinux'
+  distro_vers:
+    description: 'Version or code name of the GNU/Linux distribution.'
+    required: true
+    default: '8'
+  platform:
+    description: 'Platform name, i.e. `amd64` (default) or `i386`.'
+    required: false
+    default: 'amd64'
+
+runs:
+  using:  'composite'
+
+  steps:
+#    - name: Login to Docker Hub
+#      uses: docker/login-action@v3
+#      with:
+#        username: ${{ vars.DOCKERHUB_USERNAME }}
+#        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v6
+      with:
+        context: ${{github.action_path}}
+        push: false
+        tags: LHQG/${{ inputs.distro }}-${{ inputs.distro_vers }}:latest
+        cache-from: type=gha
+        cache-to: type=gha
+        outputs: type=docker
+        platforms: ${{inputs.platform}}
+        build-args: |
+          DISTRO=${{inputs.distro}}
+          DISTRO_VERS=${{inputs.distro_vers}}
+          PLATFORM=${{inputs.platform}}
+
+    - name: Run Docker container to compile SELinux module
+      shell: bash
+      run: |
+        docker run --platform="${{inputs.platform}}" \
+          -v "/var/run/docker.sock":"/var/run/docker.sock" \
+          -v "${{github.workspace}}":/source \
+          "LHQG/${{ inputs.distro }}-${{ inputs.distro_vers }}:latest"
+      working-directory: ${{github.workspace}}
